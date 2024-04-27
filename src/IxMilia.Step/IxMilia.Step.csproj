@@ -5,7 +5,7 @@
     <Copyright>Copyright 2017</Copyright>
     <AssemblyTitle>IxMilia.Step</AssemblyTitle>
     <Authors>IxMilia</Authors>
-    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <TargetFramework>net8.0</TargetFramework>
     <AssemblyName>IxMilia.Step</AssemblyName>
     <PackageId>IxMilia.Step</PackageId>
     <PackageTags>CAD;STEP;STP</PackageTags>
@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0-beta2-19367-01" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>

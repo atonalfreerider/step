@@ -24,17 +24,16 @@ function Single([string]$pattern) {
 }
 
 try {
-    dotnet restore || Fail "Error restoring."
+    dotnet restore
 
-    dotnet run --project "$PSScriptRoot/src/IxMilia.Step.Generator.Console/IxMilia.Step.Generator.Console.csproj" || Fail "Error running generator."
+    dotnet run --project "$PSScriptRoot/src/IxMilia.Step.Generator.Console/IxMilia.Step.Generator.Console.csproj"
 
-    dotnet build --configuration $configuration || Fail "Error building."
+    dotnet build --configuration $configuration 
     if (-Not $noTest) {
-        dotnet test --no-restore --no-build --configuration $configuration || Fail "Error running tests."
+        dotnet test --no-restore --no-build --configuration $configuration 
     }
-    dotnet pack --no-restore --no-build --configuration $configuration || "Error creating package."
+    dotnet pack --no-restore --no-build --configuration $configuration 
     $package = Single "$PSScriptRoot/artifacts/packages/$configuration/*.nupkg"
-    Write-Host "Package generated at '$package'"
 }
 catch {
     Write-Host $_

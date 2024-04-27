@@ -1,4 +1,7 @@
-﻿IxMilia.Step
+﻿Run powershell build-and-test.ps1 to build generated scripts
+Or run generator.console main
+
+IxMilia.Step
 ============
 
 A portable .NET library for reading and writing STEP CAD files.
