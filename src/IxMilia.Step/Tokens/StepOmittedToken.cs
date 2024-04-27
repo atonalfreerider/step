@@ -1,13 +1,8 @@
 namespace IxMilia.Step.Tokens
 {
-    internal class StepOmittedToken : StepToken
+    class StepOmittedToken(int line, int column) : StepToken(line, column)
     {
         public override StepTokenKind Kind => StepTokenKind.Omitted;
-
-        public StepOmittedToken(int line, int column)
-            : base(line, column)
-        {
-        }
 
         public override string ToString()
         {

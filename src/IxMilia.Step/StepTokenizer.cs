@@ -7,13 +7,13 @@ using IxMilia.Step.Tokens;
 
 namespace IxMilia.Step
 {
-    internal class StepTokenizer
+    class StepTokenizer
     {
-        private StreamReader _reader;
-        private string _currentLine;
-        private int _offset;
-        private int _currentLineNumber;
-        private int _currentColumn;
+        readonly StreamReader _reader;
+        string _currentLine;
+        int _offset;
+        int _currentLineNumber;
+        int _currentColumn;
 
         public int CurrentLine => _currentLineNumber;
         public int CurrentColumn => _currentColumn;
@@ -24,7 +24,7 @@ namespace IxMilia.Step
             ReadNextLine();
         }
 
-        private void ReadNextLine()
+        void ReadNextLine()
         {
             _currentLine = _reader.ReadLine();
             _offset = 0;
@@ -32,7 +32,7 @@ namespace IxMilia.Step
             _currentColumn = 1;
         }
 
-        private char? PeekCharacter()
+        char? PeekCharacter()
         {
             while (true)
             {
@@ -59,7 +59,7 @@ namespace IxMilia.Step
                             Advance(); // swallow '/'
                             Advance(); // swallow '*'
 
-                            var endIndex = _currentLine.IndexOf("*/", _offset);
+                            int endIndex = _currentLine.IndexOf("*/", _offset);
                             while (endIndex < 0 && _currentLine != null)
                             {
                                 // end wasn't on this line
@@ -94,7 +94,7 @@ namespace IxMilia.Step
             }
         }
 
-        private void Advance()
+        void Advance()
         {
             _offset++;
             _currentColumn++;
@@ -110,9 +110,9 @@ namespace IxMilia.Step
             SwallowWhitespace();
             while ((cn = PeekCharacter()) != null)
             {
-                var tokenLine = _currentLineNumber;
-                var tokenColumn = _currentColumn;
-                var c = cn.GetValueOrDefault();
+                int tokenLine = _currentLineNumber;
+                int tokenColumn = _currentColumn;
+                char c = cn.GetValueOrDefault();
                 if (c == '$')
                 {
                     Advance();
@@ -187,7 +187,7 @@ namespace IxMilia.Step
             yield break;
         }
 
-        private void SwallowWhitespace()
+        void SwallowWhitespace()
         {
             char? cn;
             bool keepSwallowing = true;
@@ -210,105 +210,105 @@ namespace IxMilia.Step
             }
         }
 
-        private bool IsDigit(char c)
+        bool IsDigit(char c)
         {
             return c >= '0' && c <= '9';
         }
 
-        private bool IsDot(char c)
+        bool IsDot(char c)
         {
             return c == '.';
         }
 
-        private bool IsE(char c)
+        bool IsE(char c)
         {
             return c == 'e' || c == 'E';
         }
 
-        private bool IsPlus(char c)
+        bool IsPlus(char c)
         {
             return c == '+';
         }
 
-        private bool IsMinus(char c)
+        bool IsMinus(char c)
         {
             return c == '-';
         }
 
-        private bool IsUnderscore(char c)
+        bool IsUnderscore(char c)
         {
             return c == '_';
         }
 
-        private bool IsNumberStart(char c)
+        bool IsNumberStart(char c)
         {
             return IsDigit(c)
                 || c == '-'
                 || c == '+';
         }
 
-        private bool IsApostrophe(char c)
+        bool IsApostrophe(char c)
         {
             return c == '\'';
         }
 
-        private bool IsBackslash(char c)
+        bool IsBackslash(char c)
         {
             return c == '\\';
         }
 
-        private bool IsHash(char c)
+        bool IsHash(char c)
         {
             return c == '#';
         }
 
-        private bool IsAt(char c)
+        bool IsAt(char c)
         {
             return c == '@';
         }
 
-        private bool IsUpper(char c)
+        bool IsUpper(char c)
         {
             return c >= 'A' && c <= 'Z';
         }
 
-        private bool IsUpperOrDigit(char c)
+        bool IsUpperOrDigit(char c)
         {
             return IsUpper(c) || IsDigit(c);
         }
 
-        private bool IsEnumCharacter(char c)
+        bool IsEnumCharacter(char c)
         {
             return IsUpperOrDigit(c) || IsUnderscore(c);
         }
 
-        private bool IsLeftParen(char c)
+        bool IsLeftParen(char c)
         {
             return c == '(';
         }
 
-        private bool IsRightParen(char c)
+        bool IsRightParen(char c)
         {
             return c == ')';
         }
 
-        private bool IsComma(char c)
+        bool IsComma(char c)
         {
             return c == ',';
         }
 
-        private bool IsKeywordCharacter(char c)
+        bool IsKeywordCharacter(char c)
         {
             return IsUpperOrDigit(c)
                 || IsUnderscore(c)
                 || IsMinus(c);
         }
 
-        private StepToken ParseNumber()
+        StepToken ParseNumber()
         {
-            var tokenLine = _currentLineNumber;
-            var tokenColumn = _currentColumn;
-            var sb = new StringBuilder();
+            int tokenLine = _currentLineNumber;
+            int tokenColumn = _currentColumn;
+            StringBuilder sb = new StringBuilder();
             sb.Append(PeekCharacter());
             Advance();
 
@@ -317,7 +317,7 @@ namespace IxMilia.Step
             char? cn;
             while ((cn = PeekCharacter()) != null)
             {
-                var c = cn.GetValueOrDefault();
+                char c = cn.GetValueOrDefault();
                 if (IsDigit(c))
                 {
                     sb.Append(c);
@@ -347,17 +347,17 @@ namespace IxMilia.Step
                 }
             }
 
-            var str = sb.ToString();
+            string str = sb.ToString();
             return seenDecimal || seenE
                 ? (StepToken)new StepRealToken(double.Parse(str, CultureInfo.InvariantCulture), tokenLine, tokenColumn)
                 : new StepIntegerToken(int.Parse(str, CultureInfo.InvariantCulture), tokenLine, tokenColumn);
         }
 
-        private StepStringToken ParseString()
+        StepStringToken ParseString()
         {
-            var tokenLine = _currentLineNumber;
-            var tokenColumn = _currentColumn;
-            var sb = new StringBuilder();
+            int tokenLine = _currentLineNumber;
+            int tokenColumn = _currentColumn;
+            StringBuilder sb = new StringBuilder();
             Advance();
 
             char? cn;
@@ -365,7 +365,7 @@ namespace IxMilia.Step
             bool wasBackslashLast = false;
             while ((cn = PeekCharacter()) != null)
             {
-                var c = cn.GetValueOrDefault();
+                char c = cn.GetValueOrDefault();
                 if (IsApostrophe(c) && wasApostropheLast)
                 {
                     // escaped
@@ -403,16 +403,16 @@ namespace IxMilia.Step
                 }
             }
 
-            var str = sb.ToString();
+            string str = sb.ToString();
             return new StepStringToken(str, tokenLine, tokenColumn);
         }
 
-        private StepToken ParseHashValue()
+        StepToken ParseHashValue()
         {
-            var tokenLine = _currentLineNumber;
-            var tokenColumn = _currentColumn;
+            int tokenLine = _currentLineNumber;
+            int tokenColumn = _currentColumn;
             Advance(); // swallow '#'
-            var next = PeekCharacter();
+            char? next = PeekCharacter();
             if (next == null)
             {
                 throw new StepReadException("Expected constant instance or entity instance", tokenLine, tokenColumn);
@@ -434,12 +434,12 @@ namespace IxMilia.Step
             }
         }
 
-        private StepToken ParseAtValue()
+        StepToken ParseAtValue()
         {
-            var tokenLine = _currentLineNumber;
-            var tokenColumn = _currentColumn;
+            int tokenLine = _currentLineNumber;
+            int tokenColumn = _currentColumn;
             Advance(); // swallow '@'
-            var next = PeekCharacter();
+            char? next = PeekCharacter();
             if (next == null)
             {
                 throw new StepReadException("Expected constant value or instance value", tokenLine, tokenColumn);
@@ -461,19 +461,19 @@ namespace IxMilia.Step
             }
         }
 
-        private StepEnumerationToken ParseEnumeration()
+        StepEnumerationToken ParseEnumeration()
         {
-            var tokenLine = _currentLineNumber;
-            var tokenColumn = _currentColumn;
-            var sb = new StringBuilder();
+            int tokenLine = _currentLineNumber;
+            int tokenColumn = _currentColumn;
+            StringBuilder sb = new StringBuilder();
             Advance(); // swallow leading '.'
-            var value = TakeWhile(IsEnumCharacter);
+            string value = TakeWhile(IsEnumCharacter);
             if (string.IsNullOrEmpty(value))
             {
                 throw new StepReadException("Expected enumeration value", tokenLine, tokenColumn);
             }
 
-            var next = PeekCharacter();
+            char? next = PeekCharacter();
             if (next.HasValue && IsDot(next.GetValueOrDefault()))
             {
                 Advance();
@@ -485,17 +485,17 @@ namespace IxMilia.Step
             }
         }
 
-        private StepKeywordToken ParseKeyword()
+        StepKeywordToken ParseKeyword()
         {
-            var tokenLine = _currentLineNumber;
-            var tokenColumn = _currentColumn;
-            var value = TakeWhile(IsKeywordCharacter);
+            int tokenLine = _currentLineNumber;
+            int tokenColumn = _currentColumn;
+            string value = TakeWhile(IsKeywordCharacter);
             return new StepKeywordToken(value, tokenLine, tokenColumn);
         }
 
-        private string TakeWhile(Func<char, bool> predicate)
+        string TakeWhile(Func<char, bool> predicate)
         {
-            var sb = new StringBuilder();
+            StringBuilder sb = new StringBuilder();
             char? c;
             while ((c = PeekCharacter()) != null && predicate(c.GetValueOrDefault()))
             {

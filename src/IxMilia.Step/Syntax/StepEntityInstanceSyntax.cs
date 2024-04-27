@@ -3,7 +3,7 @@ using IxMilia.Step.Tokens;
 
 namespace IxMilia.Step.Syntax
 {
-    internal class StepEntityInstanceSyntax : StepSyntax
+    class StepEntityInstanceSyntax : StepSyntax
     {
         public override StepSyntaxType SyntaxType => StepSyntaxType.EntityInstance;
 
@@ -20,7 +20,7 @@ namespace IxMilia.Step.Syntax
         public override IEnumerable<StepToken> GetTokens()
         {
             yield return new StepEntityInstanceToken(Id, -1, -1);
-            foreach (var token in SimpleItemInstance.GetTokens())
+            foreach (StepToken token in SimpleItemInstance.GetTokens())
             {
                 yield return token;
             }

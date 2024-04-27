@@ -3,7 +3,7 @@ using IxMilia.Step.Tokens;
 
 namespace IxMilia.Step.Syntax
 {
-    internal class StepRealSyntax : StepSyntax
+    class StepRealSyntax : StepSyntax
     {
         public override StepSyntaxType SyntaxType => StepSyntaxType.Real;
 

@@ -64,7 +64,7 @@ module CSharpSourceGenerator =
             match tryGetListTypeBounds baseType namedTypeOverrides with
             | Some(innerType, _lower, _upperOpt) ->
                 let innerTypeName = getBaseTypeName' innerType typeNamePrefix namedTypeOverrides normalizeName
-                sprintf "ListWithMinimumAndMaximum<%s>" innerTypeName
+                $"ListWithMinimumAndMaximum<%s{innerTypeName}>"
             | None ->
                 match baseType with
                 | ConstructedType _c -> "TODO"
@@ -144,14 +144,14 @@ module CSharpSourceGenerator =
                 | None -> None
             | QueryExpression _ -> None // NYI
             | ArrayExpression _ -> None // NYI
-            | SubcomponentQualifiedExpression (_, _, _) -> failwith "subcomponent NYI"
-            | In (_, _) -> failwith "in NYI"
+            | SubcomponentQualifiedExpression _ -> failwith "subcomponent NYI"
+            | In _ -> failwith "in NYI"
             | Or (a, b) -> testAndCombine (getValidationStatementPredicate' a) (getValidationStatementPredicate' b) "({0} || {1})"
             | Xor (a, b) -> testAndCombine (getValidationStatementPredicate' a) (getValidationStatementPredicate' b) "({0} ^ {1})"
             | And (a, b) -> testAndCombine (getValidationStatementPredicate' a) (getValidationStatementPredicate' b) "({0} && {1})"
             | Not n ->
                 match getValidationStatementPredicate' n with
-                | Some n -> Some(sprintf "!(%s)" n)
+                | Some n -> Some $"!(%s{n})"
                 | None -> None
         getValidationStatementPredicate' expression
     let private getExplicitAttributeDeclaration (attr: ExplicitAttribute) (typeNamePrefix: string) (namedTypeOverrides: Map<string, BaseType>) =
@@ -162,16 +162,16 @@ module CSharpSourceGenerator =
             match tryGetListTypeBounds attr.Type.Type namedTypeOverrides with
             | Some(innerType, lower, Some upper) ->
                 let baseTypeName = getBaseTypeName innerType typeNamePrefix namedTypeOverrides
-                yield sprintf "public ListWithMinimumAndMaximum<%s> %s { get; } = new ListWithMinimumAndMaximum<%s>(%d, %d);" baseTypeName attributeName baseTypeName lower upper
+                yield $"public ListWithMinimumAndMaximum<%s{baseTypeName}> %s{attributeName} {{ get; }} = new ListWithMinimumAndMaximum<%s{baseTypeName}>(%d{lower}, %d{upper});"
             // TODO: handle case where upper is None
             | _ ->
-                yield sprintf "protected %s %s;" attributeType fieldName
-                yield sprintf "public %s %s" attributeType attributeName
+                yield $"protected %s{attributeType} %s{fieldName};"
+                yield $"public %s{attributeType} %s{attributeName}"
                 yield "{"
-                yield sprintf "get => %s;" fieldName |> indentLine
+                yield $"get => %s{fieldName};" |> indentLine
                 yield "set" |> indentLine
                 yield "{" |> indentLine
-                yield sprintf "%s = value;" fieldName |> indentLine |> indentLine
+                yield $"%s{fieldName} = value;" |> indentLine |> indentLine
                 yield "ValidateDomainRules();" |> indentLine |> indentLine
                 yield "}" |> indentLine
                 yield "}"
@@ -181,7 +181,7 @@ module CSharpSourceGenerator =
         let attributeName = getIdentifierName attr.AttributeDeclaration.Name
         let attributeExpression = getExpressionCode attr.Expression
         match attributeExpression with
-        | Some ae -> sprintf "public %s %s => %s;" attributeType attributeName ae
+        | Some ae -> $"public %s{attributeType} %s{attributeName} => %s{ae};"
         | None -> ""
     let private getValidationStatementBody (domainRule: DomainRule) =
         let predicate =
@@ -190,7 +190,7 @@ module CSharpSourceGenerator =
             | None -> "true /* TODO: not all validation predicates are supported */"
         let domainRuleText = domainRule.ToString()
         seq {
-            yield sprintf "if (!%s)" predicate
+            yield $"if (!%s{predicate})"
             yield "{"
             yield sprintf "throw new StepValidationException(\"The validation rule '%s' was not satisfied\");" (domainRuleText.Replace("\"", "\\\"")) |> indentLine
             yield "}"
@@ -220,7 +220,7 @@ module CSharpSourceGenerator =
         (parentAttributes, entity.Attributes)
     let private getReferencedItems (schema: Schema) (entity: Entity) (defaultBaseClassName: string) (namedTypeOverrides: Map<string, BaseType>) =
         seq {
-            yield sprintf "internal override IEnumerable<%s> GetReferencedItems()" defaultBaseClassName
+            yield $"internal override IEnumerable<%s{defaultBaseClassName}> GetReferencedItems()"
             yield "{"
             yield! getEntityAndParentAttributes schema entity
                    |> snd
@@ -233,7 +233,7 @@ module CSharpSourceGenerator =
                                 // TODO: currently if it's a `List<T>` we don't return the sub-items
                                 ()
                             | None ->
-                                yield sprintf "yield return %s;" attributeName
+                                yield $"yield return %s{attributeName};"
                         })
                    |> Seq.concat
                    |> indentLines
@@ -253,7 +253,7 @@ module CSharpSourceGenerator =
             yield ""
             yield! getEntityAndParentAttributes schema entity
                    |> snd
-                   |> Seq.map (fun attribute -> sprintf "yield return writer.GetItemSyntax(%s);" (getIdentifierName attribute.AttributeDeclaration.Name))
+                   |> Seq.map (fun attribute -> $"yield return writer.GetItemSyntax(%s{getIdentifierName attribute.AttributeDeclaration.Name});")
                    |> indentLines
             yield "}"
         } |> joinLines
@@ -271,23 +271,23 @@ module CSharpSourceGenerator =
                     | Some(innerType, lower, Some upper) ->
                         let attributeName = getIdentifierName e.AttributeDeclaration.Name
                         let baseTypeName = getBaseTypeName innerType typeNamePrefix namedTypeOverrides
-                        yield sprintf "syntaxList.Values[%d].GetValueList().AssertListCount(%d, %d);" index lower upper
-                        yield sprintf "item.%s.AssignValues(syntaxList.Values[%d].GetValueList().Values.Select(value => value.Get%sValue()));" attributeName index (getIdentifierName baseTypeName)
+                        yield $"syntaxList.Values[%d{index}].GetValueList().AssertListCount(%d{lower}, %d{upper});"
+                        yield $"item.%s{attributeName}.AssignValues(syntaxList.Values[%d{index}].GetValueList().Values.Select(value => value.Get%s{getIdentifierName baseTypeName}Value()));"
                     // TODO: handle case where upper is None
                     | _ ->
                         let baseTypeName = getBaseTypeName e.Type.Type typeNamePrefix namedTypeOverrides
                         if isBuiltInType e.Type.Type namedTypeOverrides then
-                            yield sprintf "item.%s = syntaxList.Values[%d].Get%sValue();" fieldName index (getIdentifierName baseTypeName)
+                            yield $"item.%s{fieldName} = syntaxList.Values[%d{index}].Get%s{getIdentifierName baseTypeName}Value();"
                         else
-                            yield sprintf "binder.BindValue(syntaxList.Values[%d], value => item.%s = value.AsType<%s>());" index fieldName baseTypeName
+                            yield $"binder.BindValue(syntaxList.Values[%d{index}], value => item.%s{fieldName} = value.AsType<%s{baseTypeName}>());"
                 })
             |> Seq.concat
         seq {
-            yield sprintf "internal static new %s CreateFromSyntaxList(StepBinder binder, StepSyntaxList syntaxList)" entityName
+            yield $"internal static new %s{entityName} CreateFromSyntaxList(StepBinder binder, StepSyntaxList syntaxList)"
             yield "{"
             yield! seq {
-                yield sprintf "syntaxList.AssertListCount(%d);" allAttributeCount
-                yield sprintf "var item = new %s();" entityName
+                yield $"syntaxList.AssertListCount(%d{allAttributeCount});"
+                yield $"var item = new %s{entityName}();"
                 yield! getSetterLinesFromAttributes parentEntityAttributes 0
                 yield! getSetterLinesFromAttributes thisEntityAttributes parentEntityAttributes.Length
                 yield "return item;"
@@ -318,10 +318,10 @@ module CSharpSourceGenerator =
         let entityName = getIdentifierNameWithPrefix entity.Name typeNamePrefix
         let subTypeDefinitionText =
             match entity.SubTypes with
-            | [] -> sprintf " : %s" defaultBaseClassName
-            | subTypeName::[] -> sprintf " : %s" (getIdentifierNameWithPrefix subTypeName typeNamePrefix)
+            | [] -> $" : %s{defaultBaseClassName}"
+            | subTypeName::[] -> $" : %s{getIdentifierNameWithPrefix subTypeName typeNamePrefix}"
             | _ -> failwith "multiple inheritance NYI"
-        sprintf "public partial class %s%s" entityName subTypeDefinitionText
+        $"public partial class %s{entityName}%s{subTypeDefinitionText}"
     let getEntityDefinition (schema: Schema) (entity: Entity) (generatedNamespace: string) (usingNamespaces: string seq) (typeNamePrefix: string) (defaultBaseClassName: string) (namedTypeOverrides: Map<string, BaseType>): (string * string) =
         let entityDeclaration = getEntityDeclaration entity typeNamePrefix defaultBaseClassName
         let explicitAttributeLines =
@@ -347,21 +347,21 @@ module CSharpSourceGenerator =
                 match tryGetListTypeBounds baseType namedTypeOverrides with
                 | Some(innerType, _lower, _upperOpt) ->
                     let innerTypeName = getBaseTypeName innerType typeNamePrefix namedTypeOverrides
-                    sprintf "IEnumerable<%s>" innerTypeName
+                    $"IEnumerable<%s{innerTypeName}>"
                 | _ -> getBaseTypeName baseType typeNamePrefix namedTypeOverrides
             attributes
-            |> List.map (fun a -> sprintf "%s %s" (getArgumentType a.Type.Type) (a.AttributeDeclaration.Name |> getParameterName))
+            |> List.map (fun a -> $"%s{getArgumentType a.Type.Type} %s{a.AttributeDeclaration.Name |> getParameterName}")
         let thisArgumentTexts = getAttributesAsArgumentTexts thisEntityAttributes
         let parentArgumentTexts = getAttributesAsArgumentTexts parentEntityAttributes
         let allArgumentsText = List.append parentArgumentTexts thisArgumentTexts |> joinWith ", "
         let constructorLines =
             let entityName = getIdentifierNameWithPrefix entity.Name typeNamePrefix
             seq {
-                yield sprintf "internal %s()" entityName
+                yield $"internal %s{entityName}()"
                 yield "{"
                 yield "}"
                 yield ""
-                yield sprintf "public %s(%s)" entityName allArgumentsText
+                yield $"public %s{entityName}(%s{allArgumentsText})"
                 yield "{"
                 yield! Seq.append parentEntityAttributes thisEntityAttributes
                        |> Seq.map (fun attribute ->
@@ -370,23 +370,23 @@ module CSharpSourceGenerator =
                             match tryGetListTypeBounds attribute.Type.Type namedTypeOverrides with
                             | Some _ ->
                                 let attributeName = getIdentifierName name
-                                sprintf "%s.AssignValues(%s);" attributeName parameterName
+                                $"%s{attributeName}.AssignValues(%s{parameterName});"
                             | _ ->
                                 let fieldName = getFieldName name
-                                sprintf "%s = %s;" fieldName parameterName)
+                                $"%s{fieldName} = %s{parameterName};")
                        |> indentLines
                 yield "ValidateDomainRules();" |> indentLine
                 yield "}"
             } |> indentLines
         let generatedCode =
             seq {
-                yield! usingNamespaces |> Seq.map (fun ns -> sprintf "using %s;" ns)
+                yield! usingNamespaces |> Seq.map (fun ns -> $"using %s{ns};")
                 yield ""
-                yield sprintf "namespace %s" generatedNamespace
+                yield $"namespace %s{generatedNamespace}"
                 yield "{"
                 yield! entityDeclaration |> toLines |> indentLines
                 yield "{" |> indentLine
-                yield sprintf "public override string ItemTypeString => \"%s\";" (entity.Name.ToUpperInvariant()) |> indentLine |> indentLine
+                yield $"public override string ItemTypeString => \"%s{entity.Name.ToUpperInvariant()}\";" |> indentLine |> indentLine
                 yield ""
                 yield! allAttributeLines |> indentLines
                 yield ""
@@ -410,21 +410,21 @@ module CSharpSourceGenerator =
         schema.Entities
         |> List.map (fun e -> getEntityDefinition schema e generatedNamespace usingNamespaces typeNamePrefix defaultBaseClassName namedTypeOverrides)
     let getFromItemSyntaxFile (schema: Schema) (generatedNamespace: string) (typeNamePrefix: string) (defaultBaseClassName: string): (string * string) =
-        let itemName = sprintf "%sBuilder" defaultBaseClassName
+        let itemName = $"%s{defaultBaseClassName}Builder"
         let content =
             seq {
                 yield "using IxMilia.Step.Syntax;"
                 yield ""
-                yield sprintf "namespace %s" generatedNamespace
+                yield $"namespace %s{generatedNamespace}"
                 yield "{"
                 yield! seq {
-                    yield sprintf "internal static class %s" itemName
+                    yield $"internal static class %s{itemName}"
                     yield "{"
                     yield! seq {
-                        yield sprintf "internal static %s FromTypedParameter(StepBinder binder, StepItemSyntax itemSyntax)" defaultBaseClassName
+                        yield $"internal static %s{defaultBaseClassName} FromTypedParameter(StepBinder binder, StepItemSyntax itemSyntax)"
                         yield "{"
                         yield! seq {
-                            yield sprintf "%s item = null;" defaultBaseClassName
+                            yield $"%s{defaultBaseClassName} item = null;"
                             yield "if (itemSyntax is StepSimpleItemSyntax simpleItem)"
                             yield "{"
                             yield! seq {
@@ -433,9 +433,9 @@ module CSharpSourceGenerator =
                                 yield! schema.Entities
                                         |> Seq.map (fun entity ->
                                             seq {
-                                                yield sprintf "case \"%s\":" (entity.Name.ToUpperInvariant())
+                                                yield $"case \"%s{entity.Name.ToUpperInvariant()}\":"
                                                 yield! seq {
-                                                    yield sprintf "item = %s.CreateFromSyntaxList(binder, simpleItem.Parameters);" (getIdentifierNameWithPrefix entity.Name typeNamePrefix)
+                                                    yield $"item = %s{getIdentifierNameWithPrefix entity.Name typeNamePrefix}.CreateFromSyntaxList(binder, simpleItem.Parameters);"
                                                     yield "break;"
                                                 } |> indentLines;
                                             })

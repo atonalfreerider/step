@@ -1,17 +1,16 @@
 using System;
 using System.Globalization;
 using System.Linq;
-using IxMilia.Step.Schemas.ExplicitDraughting;
 
 namespace IxMilia.Step.Syntax
 {
-    internal static class StepSyntaxExtensions
+    static class StepSyntaxExtensions
     {
-        public static readonly string[] DateTimeFormats = new string[]
-        {
+        public static readonly string[] DateTimeFormats =
+        [
             "yyyy-MM-ddT",
-            "yyyy-M-dTh:mm:ss ttzzz",
-        };
+            "yyyy-M-dTh:mm:ss ttzzz"
+        ];
 
         public static void AssertListCount(this StepSyntaxList syntaxList, int count)
         {
@@ -37,6 +36,19 @@ namespace IxMilia.Step.Syntax
                     return string.Empty;
                 case StepSyntaxType.String:
                     return ((StepStringSyntax)syntax).Value;
+                case StepSyntaxType.File:
+                case StepSyntaxType.HeaderSection:
+                case StepSyntaxType.DataSection:
+                case StepSyntaxType.HeaderMacro:
+                case StepSyntaxType.SimpleItem:
+                case StepSyntaxType.ComplexItem:
+                case StepSyntaxType.EntityInstance:
+                case StepSyntaxType.EntityInstanceReference:
+                case StepSyntaxType.Integer:
+                case StepSyntaxType.Real:
+                case StepSyntaxType.List:
+                case StepSyntaxType.Auto:
+                case StepSyntaxType.Enumeration:
                 default:
                     ReportError("Expected string value", syntax);
                     return null; // this will never get here because `ReportError` throws
@@ -45,7 +57,7 @@ namespace IxMilia.Step.Syntax
 
         public static DateTime GetDateTimeValue(this StepSyntax syntax)
         {
-            var str = syntax.GetStringValue();
+            string str = syntax.GetStringValue();
             DateTime result;
             if (DateTime.TryParseExact(str, DateTimeFormats, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out result))
             {
@@ -142,12 +154,12 @@ namespace IxMilia.Step.Syntax
             return string.Join(string.Empty, syntax.GetValueList().Values.Select(v => v.GetStringValue()));
         }
 
-        private static void ReportError(string message, StepSyntax location)
+        static void ReportError(string message, StepSyntax location)
         {
             ReportError(message, location.Line, location.Column);
         }
 
-        private static void ReportError(string message, int line, int column)
+        static void ReportError(string message, int line, int column)
         {
             throw new StepReadException(message, line, column);
         }

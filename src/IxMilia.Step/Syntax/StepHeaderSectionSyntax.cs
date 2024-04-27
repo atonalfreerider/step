@@ -5,17 +5,12 @@ using IxMilia.Step.Tokens;
 
 namespace IxMilia.Step.Syntax
 {
-    internal class StepHeaderSectionSyntax : StepSyntax
+    class StepHeaderSectionSyntax(int line, int column, IEnumerable<StepHeaderMacroSyntax> macros)
+        : StepSyntax(line, column)
     {
         public override StepSyntaxType SyntaxType => StepSyntaxType.HeaderSection;
 
-        public List<StepHeaderMacroSyntax> Macros { get; }
-
-        public StepHeaderSectionSyntax(int line, int column, IEnumerable<StepHeaderMacroSyntax> macros)
-            : base(line, column)
-        {
-            Macros = macros.ToList();
-        }
+        public List<StepHeaderMacroSyntax> Macros { get; } = macros.ToList();
 
         public override IEnumerable<StepToken> GetTokens()
         {

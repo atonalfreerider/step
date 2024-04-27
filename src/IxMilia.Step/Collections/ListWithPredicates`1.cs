@@ -4,17 +4,12 @@ using System.Collections.Generic;
 
 namespace IxMilia.Step.Collections
 {
-    public class ListWithMinimumAndMaximum<T> : ListWithPredicates<T>
-    {
-        public ListWithMinimumAndMaximum(int minimum, int maximum)
-            : base(null, list => list.Count >= minimum && list.Count <= maximum, false)
-        {
-        }
-    }
+    public class ListWithMinimumAndMaximum<T>(int minimum, int maximum)
+        : ListWithPredicates<T>(null, list => list.Count >= minimum && list.Count <= maximum, false);
 
     public class ListWithPredicates<T> : IList<T>
     {
-        private List<T> _items = new List<T>();
+        readonly List<T> _items = [];
         public Func<T, bool> ItemPredicate { get; }
         public Func<ListWithPredicates<T>, bool> CollectionPredicate { get; }
 
@@ -27,7 +22,7 @@ namespace IxMilia.Step.Collections
         {
             ItemPredicate = itemPredicate;
             CollectionPredicate = collectionPredicate;
-            foreach (var item in initialItems)
+            foreach (T item in initialItems)
             {
                 Add(item);
             }
@@ -41,7 +36,7 @@ namespace IxMilia.Step.Collections
         internal void AssignValues(IEnumerable<T> values)
         {
             _items.Clear();
-            foreach (var value in values)
+            foreach (T value in values)
             {
                 Add(value);
             }
@@ -49,7 +44,7 @@ namespace IxMilia.Step.Collections
             ValidateCollectionPredicate();
         }
 
-        private void ValidateItemPredicate(T item)
+        void ValidateItemPredicate(T item)
         {
             if (ItemPredicate != null && !ItemPredicate(item))
             {
@@ -57,7 +52,7 @@ namespace IxMilia.Step.Collections
             }
         }
 
-        private void ValidateCollectionPredicate()
+        void ValidateCollectionPredicate()
         {
             if (CollectionPredicate != null && !CollectionPredicate(this))
             {
@@ -67,7 +62,7 @@ namespace IxMilia.Step.Collections
 
         public T this[int index]
         {
-            get { return _items[index]; }
+            get => _items[index];
             set
             {
                 ValidateItemPredicate(value);
@@ -103,7 +98,7 @@ namespace IxMilia.Step.Collections
 
         public bool Remove(T item)
         {
-            var result = _items.Remove(item);
+            bool result = _items.Remove(item);
             ValidateCollectionPredicate();
             return result;
         }

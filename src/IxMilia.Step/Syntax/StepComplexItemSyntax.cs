@@ -4,7 +4,7 @@ using IxMilia.Step.Tokens;
 
 namespace IxMilia.Step.Syntax
 {
-    internal class StepComplexItemSyntax : StepItemSyntax
+    class StepComplexItemSyntax : StepItemSyntax
     {
         public override StepSyntaxType SyntaxType => StepSyntaxType.ComplexItem;
 

@@ -1,17 +1,11 @@
 namespace IxMilia.Step.Tokens
 {
-    internal abstract class StepToken
+    abstract class StepToken(int line, int column)
     {
         public abstract StepTokenKind Kind { get; }
 
-        public int Line { get; }
-        public int Column { get; }
-
-        protected StepToken(int line, int column)
-        {
-            Line = line;
-            Column = column;
-        }
+        public int Line { get; } = line;
+        public int Column { get; } = column;
 
         public virtual string ToString(StepWriter writer)
         {

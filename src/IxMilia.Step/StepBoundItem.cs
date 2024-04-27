@@ -3,17 +3,11 @@ using IxMilia.Step.Syntax;
 
 namespace IxMilia.Step
 {
-    internal class StepBoundItem
+    class StepBoundItem(StepItem item, StepSyntax creatingSyntax)
     {
-        public StepSyntax CreatingSyntax { get; }
-        public StepItem Item { get; }
+        public StepSyntax CreatingSyntax { get; } = creatingSyntax;
+        public StepItem Item { get; } = item;
         public bool IsAuto { get; private set; }
-
-        public StepBoundItem(StepItem item, StepSyntax creatingSyntax)
-        {
-            CreatingSyntax = creatingSyntax;
-            Item = item;
-        }
 
         public TItemType AsType<TItemType>() where TItemType : StepItem
         {
@@ -36,7 +30,7 @@ namespace IxMilia.Step
 
         public static StepBoundItem AutoItem(StepSyntax creatingSyntax)
         {
-            var boundItem = new StepBoundItem(null, creatingSyntax);
+            StepBoundItem boundItem = new StepBoundItem(null, creatingSyntax);
             boundItem.IsAuto = true;
             return boundItem;
         }

@@ -4,53 +4,48 @@ using IxMilia.Step.Tokens;
 
 namespace IxMilia.Step
 {
-    internal class StepLexer
+    class StepLexer(IEnumerable<StepToken> tokens)
     {
-        private List<StepToken> _tokens;
-        private int _offset = 0;
+        readonly List<StepToken> _tokens = [..tokens];
+        int _offset = 0;
 
-        public StepLexer(IEnumerable<StepToken> tokens)
-        {
-            _tokens = new List<StepToken>(tokens);
-        }
-
-        private bool TokensRemain()
+        bool TokensRemain()
         {
             return _offset < _tokens.Count;
         }
 
-        private void MoveNext()
+        void MoveNext()
         {
             _offset++;
         }
 
-        private StepToken Current => _tokens[_offset];
+        StepToken Current => _tokens[_offset];
 
         public StepFileSyntax LexFileSyntax()
         {
             _offset = 0;
             SwallowKeywordAndSemicolon(StepFile.MagicHeader);
 
-            var header = LexHeaderSection();
-            var data = LexDataSection();
+            StepHeaderSectionSyntax header = LexHeaderSection();
+            StepDataSectionSyntax data = LexDataSection();
 
-            var file = new StepFileSyntax(header, data);
+            StepFileSyntax file = new StepFileSyntax(header, data);
 
             SwallowKeywordAndSemicolon(StepFile.MagicFooter);
 
             return file;
         }
 
-        private StepHeaderSectionSyntax LexHeaderSection()
+        StepHeaderSectionSyntax LexHeaderSection()
         {
             AssertTokensRemain();
-            var headerLine = Current.Line;
-            var headerColumn = Current.Column;
+            int headerLine = Current.Line;
+            int headerColumn = Current.Column;
             SwallowKeywordAndSemicolon(StepFile.HeaderText);
-            var macros = new List<StepHeaderMacroSyntax>();
+            List<StepHeaderMacroSyntax> macros = [];
             while (TokensRemain() && Current.Kind == StepTokenKind.Keyword && !IsCurrentEndSec())
             {
-                var macro = LexHeaderMacro();
+                StepHeaderMacroSyntax macro = LexHeaderMacro();
                 macros.Add(macro);
             }
 
@@ -58,17 +53,17 @@ namespace IxMilia.Step
             return new StepHeaderSectionSyntax(headerLine, headerColumn, macros);
         }
 
-        private StepHeaderMacroSyntax LexHeaderMacro()
+        StepHeaderMacroSyntax LexHeaderMacro()
         {
             AssertNextTokenKind(StepTokenKind.Keyword);
-            var name = ((StepKeywordToken)Current).Value;
+            string name = ((StepKeywordToken)Current).Value;
             MoveNext();
-            var syntaxList = LexSyntaxList();
+            StepSyntaxList syntaxList = LexSyntaxList();
             SwallowSemicolon();
             return new StepHeaderMacroSyntax(name, syntaxList);
         }
 
-        private StepSyntax LexIndividualValue()
+        StepSyntax LexIndividualValue()
         {
             StepSyntax result;
             AssertTokensRemain();
@@ -117,13 +112,13 @@ namespace IxMilia.Step
             return result;
         }
 
-        private StepSyntaxList LexSyntaxList()
+        StepSyntaxList LexSyntaxList()
         {
             AssertTokensRemain();
-            var listLine = Current.Line;
-            var listColumn = Current.Column;
+            int listLine = Current.Line;
+            int listColumn = Current.Column;
             SwallowLeftParen();
-            var values = new List<StepSyntax>();
+            List<StepSyntax> values = [];
             bool keepReading = true;
             bool expectingValue = true;
             while (keepReading)
@@ -167,16 +162,16 @@ namespace IxMilia.Step
             return new StepSyntaxList(listLine, listColumn, values);
         }
 
-        private StepDataSectionSyntax LexDataSection()
+        StepDataSectionSyntax LexDataSection()
         {
             AssertTokensRemain();
-            var dataLine = Current.Line;
-            var dataColumn = Current.Column;
+            int dataLine = Current.Line;
+            int dataColumn = Current.Column;
             SwallowKeywordAndSemicolon(StepFile.DataText);
-            var itemInstsances = new List<StepEntityInstanceSyntax>();
+            List<StepEntityInstanceSyntax> itemInstsances = [];
             while (TokensRemain() && Current.Kind == StepTokenKind.EntityInstance)
             {
-                var itemInstance = LexItemInstance();
+                StepEntityInstanceSyntax itemInstance = LexItemInstance();
                 itemInstsances.Add(itemInstance);
             }
 
@@ -184,13 +179,13 @@ namespace IxMilia.Step
             return new StepDataSectionSyntax(dataLine, dataColumn, itemInstsances);
         }
 
-        private StepEntityInstanceSyntax LexItemInstance()
+        StepEntityInstanceSyntax LexItemInstance()
         {
-            var line = Current.Line;
-            var column = Current.Column;
+            int line = Current.Line;
+            int column = Current.Column;
 
             AssertNextTokenKind(StepTokenKind.EntityInstance);
-            var reference = (StepEntityInstanceToken)Current;
+            StepEntityInstanceToken reference = (StepEntityInstanceToken)Current;
             MoveNext();
 
             SwallowEquals();
@@ -215,21 +210,21 @@ namespace IxMilia.Step
             return new StepEntityInstanceSyntax(reference, item);
         }
 
-        private StepSimpleItemSyntax LexSimpleItem()
+        StepSimpleItemSyntax LexSimpleItem()
         {
             AssertNextTokenKind(StepTokenKind.Keyword);
-            var keyword = (StepKeywordToken)Current;
+            StepKeywordToken keyword = (StepKeywordToken)Current;
             MoveNext();
 
-            var parameters = LexSyntaxList();
+            StepSyntaxList parameters = LexSyntaxList();
             return new StepSimpleItemSyntax(keyword, parameters);
         }
 
-        private StepComplexItemSyntax LexComplexItem()
+        StepComplexItemSyntax LexComplexItem()
         {
-            var entities = new List<StepSimpleItemSyntax>();
-            var itemLine = Current.Line;
-            var itemColumn = Current.Column;
+            List<StepSimpleItemSyntax> entities = [];
+            int itemLine = Current.Line;
+            int itemColumn = Current.Column;
             SwallowLeftParen();
             entities.Add(LexSimpleItem()); // there's always at least one
 
@@ -255,12 +250,12 @@ namespace IxMilia.Step
             return new StepComplexItemSyntax(itemLine, itemColumn, entities);
         }
 
-        private bool IsCurrentEndSec()
+        bool IsCurrentEndSec()
         {
             return Current.Kind == StepTokenKind.Keyword && ((StepKeywordToken)Current).Value == StepFile.EndSectionText;
         }
 
-        private void SwallowKeyword(string keyword)
+        void SwallowKeyword(string keyword)
         {
             AssertNextTokenKind(StepTokenKind.Keyword);
             if (((StepKeywordToken)Current).Value != keyword)
@@ -271,39 +266,39 @@ namespace IxMilia.Step
             MoveNext();
         }
 
-        private void SwallowKeywordAndSemicolon(string keyword)
+        void SwallowKeywordAndSemicolon(string keyword)
         {
             SwallowKeyword(keyword);
             SwallowSemicolon();
         }
 
-        private void SwallowSemicolon()
+        void SwallowSemicolon()
         {
             SwallowToken(StepTokenKind.Semicolon);
         }
 
-        private void SwallowLeftParen()
+        void SwallowLeftParen()
         {
             SwallowToken(StepTokenKind.LeftParen);
         }
 
-        private void SwallowRightParen()
+        void SwallowRightParen()
         {
             SwallowToken(StepTokenKind.RightParen);
         }
 
-        private void SwallowEquals()
+        void SwallowEquals()
         {
             SwallowToken(StepTokenKind.Equals);
         }
 
-        private void SwallowToken(StepTokenKind kind)
+        void SwallowToken(StepTokenKind kind)
         {
             AssertNextTokenKind(kind);
             MoveNext();
         }
 
-        private void AssertNextTokenKind(StepTokenKind kind)
+        void AssertNextTokenKind(StepTokenKind kind)
         {
             AssertTokensRemain();
             if (Current.Kind != kind)
@@ -312,7 +307,7 @@ namespace IxMilia.Step
             }
         }
 
-        private void AssertTokensRemain()
+        void AssertTokensRemain()
         {
             if (!TokensRemain())
             {
@@ -320,7 +315,7 @@ namespace IxMilia.Step
             }
         }
 
-        private void ReportError(string message, int? line = null, int? column = null)
+        void ReportError(string message, int? line = null, int? column = null)
         {
             throw new StepReadException(message, line ?? Current.Line, column ?? Current.Column);
         }

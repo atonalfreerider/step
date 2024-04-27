@@ -6,32 +6,24 @@ using IxMilia.Step.Syntax;
 
 namespace IxMilia.Step
 {
-    internal class StepBinder
+    class StepBinder(Dictionary<int, StepItem> itemMap)
     {
-        private Dictionary<int, StepItem> _itemMap;
-        private Dictionary<int, List<Tuple<StepSyntax, Action<StepBoundItem>>>> _unboundPointers = new Dictionary<int, List<Tuple<StepSyntax, Action<StepBoundItem>>>>();
-
-        public StepBinder(Dictionary<int, StepItem> itemMap)
-        {
-            _itemMap = itemMap;
-        }
+        readonly Dictionary<int, List<Tuple<StepSyntax, Action<StepBoundItem>>>> _unboundPointers = new Dictionary<int, List<Tuple<StepSyntax, Action<StepBoundItem>>>>();
 
         public void BindValue(StepSyntax syntax, Action<StepBoundItem> bindAction)
         {
-            if (syntax is StepSimpleItemSyntax)
+            if (syntax is StepSimpleItemSyntax typedParameter)
             {
-                var typedParameter = (StepSimpleItemSyntax)syntax;
-                var item = StepItemBuilder.FromTypedParameter(this, typedParameter);
-                var boundItem = new StepBoundItem(item, syntax);
+                StepItem item = StepItemBuilder.FromTypedParameter(this, typedParameter);
+                StepBoundItem boundItem = new StepBoundItem(item, typedParameter);
                 bindAction(boundItem);
             }
-            else if (syntax is StepEntityInstanceReferenceSyntax)
+            else if (syntax is StepEntityInstanceReferenceSyntax itemInstance)
             {
-                var itemInstance = (StepEntityInstanceReferenceSyntax)syntax;
-                if (_itemMap.ContainsKey(itemInstance.Id))
+                if (itemMap.TryGetValue(itemInstance.Id, out StepItem value))
                 {
                     // pointer already defined, bind immediately
-                    var boundItem = new StepBoundItem(_itemMap[itemInstance.Id], syntax);
+                    StepBoundItem boundItem = new StepBoundItem(value, itemInstance);
                     bindAction(boundItem);
                 }
                 else
@@ -57,18 +49,17 @@ namespace IxMilia.Step
 
         public void BindRemainingValues()
         {
-            foreach (var id in _unboundPointers.Keys)
+            foreach (int id in _unboundPointers.Keys)
             {
-                if (!_itemMap.ContainsKey(id))
+                if (!itemMap.TryGetValue(id, out StepItem item))
                 {
-                    var syntax = _unboundPointers[id].First().Item1;
+                    StepSyntax syntax = _unboundPointers[id].First().Item1;
                     throw new StepReadException($"Cannot bind undefined pointer {id}", syntax.Line, syntax.Column);
                 }
 
-                var item = _itemMap[id];
-                foreach (var binder in _unboundPointers[id])
+                foreach (Tuple<StepSyntax, Action<StepBoundItem>> binder in _unboundPointers[id])
                 {
-                    var boundItem = new StepBoundItem(item, binder.Item1);
+                    StepBoundItem boundItem = new StepBoundItem(item, binder.Item1);
                     binder.Item2(boundItem);
                 }
             }

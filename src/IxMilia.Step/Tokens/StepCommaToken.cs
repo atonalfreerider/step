@@ -1,13 +1,8 @@
 namespace IxMilia.Step.Tokens
 {
-    internal class StepCommaToken : StepToken
+    class StepCommaToken(int line, int column) : StepToken(line, column)
     {
         public override StepTokenKind Kind => StepTokenKind.Comma;
-
-        public StepCommaToken(int line, int column)
-            : base(line, column)
-        {
-        }
 
         public override string ToString()
         {

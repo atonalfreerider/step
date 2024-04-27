@@ -121,8 +121,8 @@ type Expression =
         match this with
         | LiteralValue l -> l.ToString()
         | Identifier i -> i
-        | MemberAccess (e, m) -> sprintf "%s.%s" (e.ToString()) m
-        | GroupAccess (e, m) -> sprintf "%s\\%s" (e.ToString()) m
+        | MemberAccess (e, m) -> $"%s{e.ToString()}.%s{m}"
+        | GroupAccess (e, m) -> $"%s{e.ToString()}\\%s{m}"
         | Negate n -> "-" + n.ToString()
         | Add (a, b) -> a.ToString() + "+" + b.ToString()
         | Subtract (a, b) -> a.ToString() + "-" + b.ToString()
@@ -234,7 +234,7 @@ type DomainRule(label:string, expression:Expression) =
     member this.Label = label
     member this.Expression = expression
     override _.ToString() =
-        sprintf "%s:%s" label (expression.ToString())
+        $"%s{label}:%s{expression.ToString()}"
 
 type SuperTypeExpression =
     | SuperTypeFactor of SuperTypeFactor

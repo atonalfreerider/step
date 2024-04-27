@@ -3,18 +3,12 @@ using IxMilia.Step.Tokens;
 
 namespace IxMilia.Step.Syntax
 {
-    internal abstract class StepSyntax
+    abstract class StepSyntax(int line, int column)
     {
         public abstract StepSyntaxType SyntaxType { get; }
 
-        public int Line { get; }
-        public int Column { get; }
-
-        protected StepSyntax(int line, int column)
-        {
-            Line = line;
-            Column = column;
-        }
+        public int Line { get; } = line;
+        public int Column { get; } = column;
 
         public abstract IEnumerable<StepToken> GetTokens();
     }

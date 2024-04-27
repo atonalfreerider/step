@@ -28,7 +28,7 @@ namespace IxMilia.Step
         ManagedModelBased3DEngineering = 242
     }
 
-    internal static class StepSchemaTypeExtensions
+    static class StepSchemaTypeExtensions
     {
         // SHAPE_APPEARANCE_LAYERS_GROUPS
         public const string AssociativeDraghtingText = "ASSOCIATIVE_DRAUGHTING";

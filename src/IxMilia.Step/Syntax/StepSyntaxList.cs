@@ -4,11 +4,11 @@ using IxMilia.Step.Tokens;
 
 namespace IxMilia.Step.Syntax
 {
-    internal class StepSyntaxList : StepSyntax
+    class StepSyntaxList(int line, int column, IEnumerable<StepSyntax> values) : StepSyntax(line, column)
     {
         public override StepSyntaxType SyntaxType => StepSyntaxType.List;
 
-        public List<StepSyntax> Values { get; }
+        public List<StepSyntax> Values { get; } = values.ToList();
 
         public StepSyntaxList(params StepSyntax[] values)
             : this(-1, -1, values)
@@ -20,18 +20,12 @@ namespace IxMilia.Step.Syntax
         {
         }
 
-        public StepSyntaxList(int line, int column, IEnumerable<StepSyntax> values)
-            : base(line, column)
-        {
-            Values = values.ToList();
-        }
-
         public override IEnumerable<StepToken> GetTokens()
         {
             yield return StepLeftParenToken.Instance;
             for (int i = 0; i < Values.Count; i++)
             {
-                foreach (var token in Values[i].GetTokens())
+                foreach (StepToken token in Values[i].GetTokens())
                 {
                     yield return token;
                 }

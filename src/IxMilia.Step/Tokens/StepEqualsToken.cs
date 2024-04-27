@@ -1,13 +1,8 @@
 namespace IxMilia.Step.Tokens
 {
-    internal class StepEqualsToken : StepToken
+    class StepEqualsToken(int line, int column) : StepToken(line, column)
     {
         public override StepTokenKind Kind => StepTokenKind.Equals;
-
-        public StepEqualsToken(int line, int column)
-            : base(line, column)
-        {
-        }
 
         public override string ToString()
         {

@@ -4,19 +4,12 @@ using IxMilia.Step.Tokens;
 
 namespace IxMilia.Step.Syntax
 {
-    internal class StepHeaderMacroSyntax : StepSyntax
+    class StepHeaderMacroSyntax(string name, StepSyntaxList values) : StepSyntax(values.Line, values.Column)
     {
         public override StepSyntaxType SyntaxType => StepSyntaxType.HeaderMacro;
 
-        public string Name { get; }
-        public StepSyntaxList Values { get; }
-
-        public StepHeaderMacroSyntax(string name, StepSyntaxList values)
-            : base(values.Line, values.Column)
-        {
-            Name = name;
-            Values = values;
-        }
+        public string Name { get; } = name;
+        public StepSyntaxList Values { get; } = values;
 
         public override IEnumerable<StepToken> GetTokens()
         {

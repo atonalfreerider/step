@@ -1,13 +1,8 @@
 namespace IxMilia.Step.Tokens
 {
-    internal class StepLeftParenToken : StepToken
+    class StepLeftParenToken(int line, int column) : StepToken(line, column)
     {
         public override StepTokenKind Kind => StepTokenKind.LeftParen;
-
-        public StepLeftParenToken(int line, int column)
-            : base(line, column)
-        {
-        }
 
         public override string ToString()
         {

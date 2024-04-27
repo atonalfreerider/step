@@ -3,21 +3,15 @@ using IxMilia.Step.Tokens;
 
 namespace IxMilia.Step.Syntax
 {
-    internal class StepAutoSyntax : StepSyntax
+    class StepAutoSyntax(StepAsteriskToken token) : StepSyntax(token.Line, token.Column)
     {
         public override StepSyntaxType SyntaxType => StepSyntaxType.Auto;
 
-        public StepAsteriskToken Token { get; private set; }
+        public StepAsteriskToken Token { get; private set; } = token;
 
         public StepAutoSyntax()
             : this(StepAsteriskToken.Instance)
         {
-        }
-
-        public StepAutoSyntax(StepAsteriskToken token)
-            : base(token.Line, token.Column)
-        {
-            Token = token;
         }
 
         public override IEnumerable<StepToken> GetTokens()

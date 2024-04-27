@@ -1,16 +1,10 @@
 namespace IxMilia.Step.Tokens
 {
-    internal class StepConstantValueToken : StepToken
+    class StepConstantValueToken(string name, int line, int column) : StepToken(line, column)
     {
         public override StepTokenKind Kind => StepTokenKind.ConstantValue;
 
-        public string Name { get; }
-
-        public StepConstantValueToken(string name, int line, int column)
-            : base(line, column)
-        {
-            Name = name;
-        }
+        public string Name { get; } = name;
 
         public override string ToString()
         {

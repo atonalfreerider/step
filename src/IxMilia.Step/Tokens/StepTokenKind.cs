@@ -1,6 +1,6 @@
 namespace IxMilia.Step.Tokens
 {
-    internal enum StepTokenKind
+    enum StepTokenKind
     {
         Semicolon,
         Omitted,

@@ -1,13 +1,8 @@
 namespace IxMilia.Step.Tokens
 {
-    internal class StepSemicolonToken : StepToken
+    class StepSemicolonToken(int line, int column) : StepToken(line, column)
     {
         public override StepTokenKind Kind => StepTokenKind.Semicolon;
-
-        public StepSemicolonToken(int line, int column)
-            : base(line, column)
-        {
-        }
 
         public override string ToString()
         {

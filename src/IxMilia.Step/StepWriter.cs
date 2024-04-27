@@ -8,35 +8,26 @@ using IxMilia.Step.Tokens;
 
 namespace IxMilia.Step
 {
-    internal class StepWriter
+    class StepWriter(StepFile stepFile, bool inlineReferences)
     {
-        private StepFile _file;
-        private int _currentLineLength;
-        private bool _honorLineLength = true;
-        private bool _inlineReferences;
-        private Dictionary<StepItem, int> _itemMap;
-        private int _nextId;
+        int _currentLineLength;
+        bool _honorLineLength = true;
+        readonly Dictionary<StepItem, int> _itemMap = new();
+        int _nextId;
 
-        private const int MaxLineLength = 80;
-
-        public StepWriter(StepFile stepFile, bool inlineReferences)
-        {
-            _file = stepFile;
-            _itemMap = new Dictionary<StepItem, int>();
-            _inlineReferences = inlineReferences;
-        }
+        const int MaxLineLength = 80;
 
         public string GetContents()
         {
-            var builder = new StringBuilder();
+            StringBuilder builder = new StringBuilder();
 
             _honorLineLength = false;
             WriteDelimitedLine(StepFile.MagicHeader, builder);
 
             // output header
             WriteDelimitedLine(StepFile.HeaderText, builder);
-            var headerSyntax = _file.GetHeaderSyntax();
-            foreach (var macro in headerSyntax.Macros)
+            StepHeaderSectionSyntax headerSyntax = stepFile.GetHeaderSyntax();
+            foreach (StepHeaderMacroSyntax macro in headerSyntax.Macros)
             {
                 WriteHeaderMacro(macro, builder);
             }
@@ -47,7 +38,7 @@ namespace IxMilia.Step
 
             // data section
             WriteDelimitedLine(StepFile.DataText, builder);
-            foreach (var item in _file.Items)
+            foreach (StepItem item in stepFile.Items)
             {
                 WriteItem(item, builder);
             }
@@ -58,7 +49,7 @@ namespace IxMilia.Step
             return builder.ToString();
         }
 
-        private void WriteHeaderMacro(StepHeaderMacroSyntax macro, StringBuilder builder)
+        void WriteHeaderMacro(StepHeaderMacroSyntax macro, StringBuilder builder)
         {
             WriteText(macro.Name, builder);
             WriteTokens(macro.Values.GetTokens(), builder);
@@ -66,22 +57,22 @@ namespace IxMilia.Step
             WriteNewLine(builder);
         }
 
-        private int WriteItem(StepItem item, StringBuilder builder)
+        int WriteItem(StepItem item, StringBuilder builder)
         {
-            if (!_inlineReferences)
+            if (!inlineReferences)
             {
                 // not inlining references, need to write out entities as we see them
-                foreach (var referencedItem in item.GetReferencedItems())
+                foreach (StepItem referencedItem in item.GetReferencedItems())
                 {
                     if (!_itemMap.ContainsKey(referencedItem))
                     {
-                        var refid = WriteItem(referencedItem, builder);
+                        int refid = WriteItem(referencedItem, builder);
                     }
                 }
             }
 
-            var id = ++_nextId;
-            var syntax = GetItemSyntax(item, id);
+            int id = ++_nextId;
+            StepSyntax syntax = GetItemSyntax(item, id);
             WriteToken(new StepEntityInstanceToken(id, -1, -1), builder);
             WriteToken(StepEqualsToken.Instance, builder);
             WriteTokens(syntax.GetTokens(), builder);
@@ -95,25 +86,25 @@ namespace IxMilia.Step
         /// </summary>
         internal void WriteTokens(IEnumerable<StepToken> tokens, StringBuilder builder)
         {
-            foreach (var token in tokens)
+            foreach (StepToken token in tokens)
             {
                 WriteToken(token, builder);
             }
         }
 
-        private void WriteToken(StepToken token, StringBuilder builder)
+        void WriteToken(StepToken token, StringBuilder builder)
         {
             WriteText(token.ToString(this), builder);
         }
 
-        private void WriteDelimitedLine(string text, StringBuilder builder)
+        void WriteDelimitedLine(string text, StringBuilder builder)
         {
             WriteText(text, builder);
             WriteToken(StepSemicolonToken.Instance, builder);
             WriteNewLine(builder);
         }
 
-        private void WriteText(string text, StringBuilder builder)
+        void WriteText(string text, StringBuilder builder)
         {
             if (_honorLineLength && _currentLineLength + text.Length > MaxLineLength)
             {
@@ -124,18 +115,18 @@ namespace IxMilia.Step
             _currentLineLength += text.Length;
         }
 
-        private void WriteNewLine(StringBuilder builder)
+        void WriteNewLine(StringBuilder builder)
         {
             builder.Append("\r\n");
             _currentLineLength = 0;
         }
 
-        private StepSyntax GetItemSyntax(StepItem item, int expectedId)
+        StepSyntax GetItemSyntax(StepItem item, int expectedId)
         {
             if (!_itemMap.ContainsKey(item))
             {
-                var parameters = new StepSyntaxList(-1, -1, item.GetParameters(this));
-                var syntax = new StepSimpleItemSyntax(item.ItemTypeString, parameters);
+                StepSyntaxList parameters = new StepSyntaxList(-1, -1, item.GetParameters(this));
+                StepSimpleItemSyntax syntax = new StepSimpleItemSyntax(item.ItemTypeString, parameters);
                 _itemMap.Add(item, expectedId);
                 return syntax;
             }
@@ -147,9 +138,9 @@ namespace IxMilia.Step
 
         public StepSyntax GetItemSyntax(StepItem item)
         {
-            if (_inlineReferences)
+            if (inlineReferences)
             {
-                var parameters = new StepSyntaxList(-1, -1, item.GetParameters(this));
+                StepSyntaxList parameters = new StepSyntaxList(-1, -1, item.GetParameters(this));
                 return new StepSimpleItemSyntax(item.ItemTypeString, parameters);
             }
             else
@@ -160,7 +151,7 @@ namespace IxMilia.Step
 
         public StepSyntax GetItemSyntax(IList<double> list)
         {
-            var itemSyntaxes = list.Select(value => GetItemSyntax(value));
+            IEnumerable<StepSyntax> itemSyntaxes = list.Select(value => GetItemSyntax(value));
             return new StepSyntaxList(itemSyntaxes);
         }
 
@@ -183,19 +174,19 @@ namespace IxMilia.Step
 
         public static StepEnumerationValueSyntax GetBooleanSyntax(bool value)
         {
-            var text = value ? "T" : "F";
+            string text = value ? "T" : "F";
             return new StepEnumerationValueSyntax(text);
         }
 
         internal static IEnumerable<string> SplitStringIntoParts(string str, int maxLength = 256)
         {
-            var parts = new List<string>();
+            List<string> parts = [];
             if (str != null)
             {
                 int offset = 0;
                 while (offset < str.Length)
                 {
-                    var length = Math.Min(maxLength, str.Length - offset);
+                    int length = Math.Min(maxLength, str.Length - offset);
                     parts.Add(str.Substring(offset, length));
                     offset += length;
                 }

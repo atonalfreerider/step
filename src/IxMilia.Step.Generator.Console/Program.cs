@@ -1,6 +1,5 @@
-using System.Collections.Generic;
-using System.IO;
 using IxMilia.Step.SchemaParser;
+using Microsoft.FSharp.Collections;
 
 namespace IxMilia.Step.Generator.Console
 {
@@ -8,32 +7,30 @@ namespace IxMilia.Step.Generator.Console
     {
         public static void Main(string[] args)
         {
-            var assemblyDir = Path.GetDirectoryName(typeof(Program).Assembly.Location);
-            var repoRoot = Path.Combine(assemblyDir, "..", "..", "..", "..", "..");
-            var outputDir = Path.Combine(repoRoot, "src", "IxMilia.Step", "Schemas", "ExplicitDraughting", "Generated");
-            var schemaContent = File.ReadAllText(Path.Combine(repoRoot, "src", "IxMilia.Step.SchemaParser.Test", "Schemas", "minimal_201.exp"));
-            var entityDefinitions = GenerateSource(schemaContent);
-            foreach ((var entityName, var entityDefinition) in entityDefinitions)
+            string? assemblyDir = Path.GetDirectoryName(typeof(Program).Assembly.Location);
+            string repoRoot = Path.Combine(assemblyDir, "..", "..", "..", "..", "..");
+            string outputDir = Path.Combine(repoRoot, "src", "IxMilia.Step", "Schemas", "ExplicitDraughting", "Generated");
+            string schemaContent = File.ReadAllText(Path.Combine(repoRoot, "src", "IxMilia.Step.SchemaParser.Test", "Schemas", "minimal_201.exp"));
+            IEnumerable<(string name, string contents)> entityDefinitions = GenerateSource(schemaContent);
+            foreach ((string entityName, string entityDefinition) in entityDefinitions)
             {
-                var outputPath = Path.Combine(outputDir, entityName);
+                string outputPath = Path.Combine(outputDir, entityName);
                 File.WriteAllText(outputPath, entityDefinition);
             }
         }
 
-        private static IEnumerable<(string name, string contents)> GenerateSource(string schemaContent)
+        static IEnumerable<(string name, string contents)> GenerateSource(string schemaContent)
         {
-            var schema = SchemaParser.SchemaParser.RunParser(schemaContent);
-            var entityDefinitions = CSharpSourceGenerator.getAllFileDefinitions(
+            Schema? schema = SchemaParser.SchemaParser.RunParser(schemaContent);
+            FSharpList<Tuple<string, string>>? entityDefinitions = CSharpSourceGenerator.getAllFileDefinitions(
                 schema,
                 generatedNamespace: "IxMilia.Step.Schemas.ExplicitDraughting",
                 usingNamespaces: new[] { "System", "System.Collections.Generic", "System.Linq", "IxMilia.Step.Collections", "IxMilia.Step.Syntax" },
                 typeNamePrefix: "Step",
                 defaultBaseClassName: "StepItem");
-            foreach (var entityDefinitionPair in entityDefinitions)
+            foreach ((string? entityName, string? entityDefinition) in entityDefinitions)
             {
-                var entityName = entityDefinitionPair.Item1;
-                var entityDefinition = entityDefinitionPair.Item2;
-                yield return ($"{entityName}.Generated.cs", entityDefinition);
+                yield return ($"{entityName}.Generated.cs", entityDefinition: entityDefinition);
             }
         }
     }

@@ -7,36 +7,36 @@ using IxMilia.Step.Syntax;
 
 namespace IxMilia.Step
 {
-    internal class StepReader
+    class StepReader
     {
-        private StepLexer _lexer;
-        private StepFile _file;
+        readonly StepLexer _lexer;
+        readonly StepFile _file;
 
         public StepReader(Stream stream)
         {
             _file = new StepFile();
-            var tokenizer = new StepTokenizer(stream);
+            StepTokenizer tokenizer = new StepTokenizer(stream);
             _lexer = new StepLexer(tokenizer.GetTokens());
         }
 
         public StepFile ReadFile()
         {
-            var fileSyntax = _lexer.LexFileSyntax();
-            foreach (var headerMacro in fileSyntax.Header.Macros)
+            StepFileSyntax fileSyntax = _lexer.LexFileSyntax();
+            foreach (StepHeaderMacroSyntax headerMacro in fileSyntax.Header.Macros)
             {
                 ApplyHeaderMacro(headerMacro);
             }
 
-            var itemMap = new Dictionary<int, StepItem>();
-            var binder = new StepBinder(itemMap);
-            foreach (var itemInstance in fileSyntax.Data.ItemInstances)
+            Dictionary<int, StepItem> itemMap = new Dictionary<int, StepItem>();
+            StepBinder binder = new StepBinder(itemMap);
+            foreach (StepEntityInstanceSyntax itemInstance in fileSyntax.Data.ItemInstances)
             {
                 if (itemMap.ContainsKey(itemInstance.Id))
                 {
                     throw new StepReadException("Duplicate item instance", itemInstance.Line, itemInstance.Column);
                 }
 
-                var item = StepItemBuilder.FromTypedParameter(binder, itemInstance.SimpleItemInstance);
+                StepItem item = StepItemBuilder.FromTypedParameter(binder, itemInstance.SimpleItemInstance);
                 if (item != null)
                 {
                     itemMap.Add(itemInstance.Id, item);
@@ -46,7 +46,7 @@ namespace IxMilia.Step
 
             binder.BindRemainingValues();
 
-            foreach (var item in _file.Items)
+            foreach (StepItem item in _file.Items)
             {
                 item.ValidateDomainRules();
             }
@@ -54,7 +54,7 @@ namespace IxMilia.Step
             return _file;
         }
 
-        private void ApplyHeaderMacro(StepHeaderMacroSyntax macro)
+        void ApplyHeaderMacro(StepHeaderMacroSyntax macro)
         {
             switch (macro.Name)
             {
@@ -73,14 +73,14 @@ namespace IxMilia.Step
             }
         }
 
-        private void ApplyFileDescription(StepSyntaxList valueList)
+        void ApplyFileDescription(StepSyntaxList valueList)
         {
             valueList.AssertListCount(2);
             _file.Description = valueList.Values[0].GetConcatenatedStringValue();
             _file.ImplementationLevel = valueList.Values[1].GetStringValue(); // TODO: handle appropriate values
         }
 
-        private void ApplyFileName(StepSyntaxList valueList)
+        void ApplyFileName(StepSyntaxList valueList)
         {
             valueList.AssertListCount(7);
             _file.Name = valueList.Values[0].GetStringValue();
@@ -92,10 +92,10 @@ namespace IxMilia.Step
             _file.Authorization = valueList.Values[6].GetStringValue();
         }
 
-        private void ApplyFileSchema(StepSyntaxList valueList)
+        void ApplyFileSchema(StepSyntaxList valueList)
         {
             valueList.AssertListCount(1);
-            foreach (var schemaName in valueList.Values[0].GetValueList().Values.Select(v => v.GetStringValue()))
+            foreach (string schemaName in valueList.Values[0].GetValueList().Values.Select(v => v.GetStringValue()))
             {
                 StepSchemaTypes schemaType;
                 if (StepSchemaTypeExtensions.TryGetSchemaTypeFromName(schemaName, out schemaType))

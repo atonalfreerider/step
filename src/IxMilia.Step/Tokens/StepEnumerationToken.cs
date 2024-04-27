@@ -1,16 +1,10 @@
 namespace IxMilia.Step.Tokens
 {
-    internal class StepEnumerationToken : StepToken
+    class StepEnumerationToken(string value, int line, int column) : StepToken(line, column)
     {
         public override StepTokenKind Kind => StepTokenKind.Enumeration;
 
-        public string Value { get; }
-
-        public StepEnumerationToken(string value, int line, int column)
-            : base(line, column)
-        {
-            Value = value;
-        }
+        public string Value { get; } = value;
 
         public override string ToString()
         {

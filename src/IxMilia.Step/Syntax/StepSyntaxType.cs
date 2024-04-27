@@ -1,6 +1,6 @@
 namespace IxMilia.Step.Syntax
 {
-    internal enum StepSyntaxType
+    enum StepSyntaxType
     {
         File,
         HeaderSection,
