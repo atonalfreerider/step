@@ -1,5 +1,3 @@
--- a minimal subset of the 201 schema necessary to model a simple line
-
 SCHEMA explicit_draughting;
 
   TYPE label = STRING;
@@ -20,8 +18,7 @@ SCHEMA explicit_draughting;
   END_ENTITY; -- representation_item
 
   ENTITY geometric_representation_item
-    SUPERTYPE OF (ONEOF (point,direction,vector,placement,curve,
-        geometric_set))
+    SUPERTYPE OF (ONEOF (point, direction, vector, placement, curve, geometric_set))
     SUBTYPE OF (representation_item);
     DERIVE
       dim : dimension_count := dimension_of(SELF);
@@ -32,7 +29,7 @@ SCHEMA explicit_draughting;
   END_ENTITY; -- geometric_representation_item
 
   ENTITY point
-    SUPERTYPE OF (ONEOF (cartesian_point,point_on_curve))
+    SUPERTYPE OF (ONEOF (cartesian_point, point_on_curve))
     SUBTYPE OF (geometric_representation_item);
   END_ENTITY; -- point
 
@@ -57,7 +54,7 @@ SCHEMA explicit_draughting;
   END_ENTITY; -- vector
 
   ENTITY curve
-    SUPERTYPE OF (ONEOF (line,conic,offset_curve_2d))
+    SUPERTYPE OF (ONEOF (line, conic, offset_curve_2d))
     SUBTYPE OF (geometric_representation_item);
   END_ENTITY; -- curve
 
@@ -68,5 +65,137 @@ SCHEMA explicit_draughting;
     WHERE
       wr1: dir.dim = pnt.dim;
   END_ENTITY; -- line
+  
+  ENTITY vertex
+  SUBTYPE OF (topological_representation_item);
+    geometry : cartesian_point; -- Geometric representation of the vertex
+  END_ENTITY; -- vertex
+
+  ENTITY face
+    SUBTYPE OF (topological_representation_item);
+      geometry : surface;
+      bounds : SET [1:?] OF face_bound;
+      orientation : BOOLEAN;
+  END_ENTITY; -- face
+  
+  ENTITY topological_representation_item
+    SUBTYPE OF (geometric_representation_item);
+  END_ENTITY; -- topological_representation_item
+  
+  ENTITY connected_face_set
+    SUBTYPE OF (topological_representation_item);
+      faces : SET [1:?] OF face;
+  END_ENTITY; -- connected_face_set
+  
+  ENTITY closed_shell
+    SUBTYPE OF (connected_face_set);
+      cfs_faces : SET [1:?] OF face;
+  END_ENTITY; -- closed_shell
+  
+  ENTITY solid_model
+    ABSTRACT SUPERTYPE OF (ONEOF (manifold_solid_brep, other_solid_types));
+  END_ENTITY; -- solid_model
+  
+  ENTITY manifold_solid_brep
+    SUBTYPE OF (solid_model);
+      outer : closed_shell;
+  END_ENTITY; -- manifold_solid_brep
+  
+  ENTITY other_solid_types
+    SUBTYPE OF (solid_model);
+    -- Attributes for other solid types here
+  END_ENTITY; -- other_solid_types
+  
+  ENTITY edge
+    SUBTYPE OF (topological_representation_item);
+      edge_start : vertex;
+      edge_end : vertex;
+      geometry : curve;
+  END_ENTITY; -- edge
+  
+  ENTITY elementary_surface
+    SUBTYPE OF (surface);
+    -- More specific attributes related to elementary surfaces can be added here
+  END_ENTITY; -- elementary_surface
+
+  ENTITY advanced_face
+    SUBTYPE OF (face);
+      surface_geometry : surface;
+      bounds : SET [1:?] OF face_bound;
+      same_sense : BOOLEAN;
+  END_ENTITY; -- advanced_face
+  
+  ENTITY face_bound
+    SUPERTYPE OF (ONEOF (face_outer_bound, edge_loop));
+      bound : loop;
+      orientation : BOOLEAN;
+  END_ENTITY; -- face_bound
+  
+  ENTITY face_outer_bound
+    SUBTYPE OF (face_bound);
+  END_ENTITY; -- face_outer_bound
+  
+  ENTITY edge_loop
+    SUBTYPE OF (topological_representation_item);
+      edge_list : LIST [1:?] OF oriented_edge;
+  END_ENTITY; -- edge_loop
+  
+  ENTITY oriented_edge
+    SUBTYPE OF (edge);
+      edge_element : edge;
+      orientation : BOOLEAN;
+  END_ENTITY; -- oriented_edge
+
+  ENTITY cylindrical_surface
+    SUBTYPE OF (elementary_surface);
+      radius : length_measure;
+  END_ENTITY; -- cylindrical_surface
+  
+  ENTITY conical_surface
+    SUBTYPE OF (elementary_surface);
+      radius : length_measure;
+      semi_angle : angle_measure;
+  END_ENTITY; -- conical_surface
+  
+  ENTITY circle
+    SUBTYPE OF (conic);
+      radius : length_measure;
+  END_ENTITY; -- circle
+  
+  ENTITY surface
+    ABSTRACT SUPERTYPE;
+  END_ENTITY; -- surface
+  
+  ENTITY conic
+    SUBTYPE OF (curve);
+    -- More specific attributes related to conic sections can be added here
+  END_ENTITY; -- conic
+  
+  ENTITY plane
+    SUBTYPE OF (elementary_surface);
+  END_ENTITY; -- plane
+  
+  ENTITY vertex_point
+    SUBTYPE OF (vertex);
+      vertex_geometry : point;
+  END_ENTITY; -- vertex_point
+  
+  ENTITY product_definition
+    SUBTYPE OF (product);
+      id : identifier;
+      description : text;
+      formation : product_definition_formation;
+      frame_of_reference : product_definition_context;
+    UNIQUE
+      UNIQUE_id : id;
+  END_ENTITY; -- product_definition
+  
+  ENTITY product;
+      id : IDENTIFIER; -- Unique identifier for the product
+      name : LABEL; -- Name or title of the product
+      description : TEXT; -- Detailed description of the product
+      version : STRING; -- Version information
+      status : STRING; -- Status of the product (e.g., active, discontinued)
+  END_ENTITY; -- product
 
 END_SCHEMA; -- explicit_draughting

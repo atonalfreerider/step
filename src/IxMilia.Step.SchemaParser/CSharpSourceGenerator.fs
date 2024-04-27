@@ -59,24 +59,59 @@ module CSharpSourceGenerator =
                 | _ -> None
             | _ -> None
         | _ -> None
-    let getBaseTypeName (baseType: BaseType) (typeNamePrefix: string) (namedTypeOverrides: Map<string, BaseType>) =
+    let rec getBaseTypeName (baseType: BaseType) (typeNamePrefix: string) (namedTypeOverrides: Map<string, BaseType>) =
         let rec getBaseTypeName' (baseType: BaseType) (typeNamePrefix: string) (namedTypeOverrides: Map<string, BaseType>) (normalizeName: bool) =
             match tryGetListTypeBounds baseType namedTypeOverrides with
             | Some(innerType, _lower, _upperOpt) ->
                 let innerTypeName = getBaseTypeName' innerType typeNamePrefix namedTypeOverrides normalizeName
-                $"ListWithMinimumAndMaximum<%s{innerTypeName}>"
+                $"ListWithMinimumAndMaximum<{innerTypeName}>"
             | None ->
                 match baseType with
-                | ConstructedType _c -> "TODO"
-                | AggregationType _a -> "TODO"
-                | SimpleType s -> getSimpleTypeName s typeNamePrefix
+                | ConstructedType c ->
+                    // Assuming `getConstructedTypeName` is a method to handle constructed types.
+                    getConstructedTypeName c typeNamePrefix
+                | AggregationType a ->
+                    // Assuming `getAggregationTypeName` handles types like arrays/lists.
+                    getAggregationTypeName a typeNamePrefix namedTypeOverrides
+                | SimpleType s -> 
+                    getSimpleTypeName s typeNamePrefix
                 | NamedType n ->
                     match Map.tryFind n namedTypeOverrides with
-                    | Some namedTypeOverride -> getBaseTypeName' namedTypeOverride "" namedTypeOverrides false
+                    | Some namedTypeOverride -> 
+                        getBaseTypeName' namedTypeOverride "" namedTypeOverrides false
                     | None ->
-                        if normalizeName then getIdentifierNameWithPrefix n typeNamePrefix
+                        if normalizeName then 
+                            getIdentifierNameWithPrefix n typeNamePrefix
                         else n
         getBaseTypeName' baseType typeNamePrefix namedTypeOverrides true
+        
+    and getConstructedTypeName (c: ConstructedType) (typeNamePrefix: string) : string =
+        match c with
+        | EnumerationType names ->
+            let combinedNames = String.concat ", " names // Create a CSV list of enumeration names
+            $"enum %s{typeNamePrefix} {{ %s{combinedNames} }}"
+        | SelectType types ->
+            let typeNames = types |> List.map (fun t -> getBaseTypeName t typeNamePrefix Map.empty)
+            let combinedTypes = String.concat " | " typeNames // Create a union type list
+            $"type %s{typeNamePrefix} = %s{combinedTypes}"
+       
+    and getAggregationTypeName (a: AggregationType) (typeNamePrefix: string) (namedTypeOverrides: Map<string, BaseType>) : string =
+        match a with
+        | ArrayType (baseType, lower, upperOpt, isOptional, isUnique) ->
+            let typeName = getBaseTypeName baseType typeNamePrefix namedTypeOverrides
+            let suffix = if isOptional then "?" else ""
+            $"%s{typeName}[]%s{suffix}"
+        | BagType (baseType, lower, upperOpt) ->
+            let typeName = getBaseTypeName baseType typeNamePrefix namedTypeOverrides
+            sprintf "List<{typeName}>" // Assume Bag translates to a List without uniqueness constraints.
+        | ListType (baseType, lower, upperOpt, isUnique) ->
+           let typeName = getBaseTypeName baseType typeNamePrefix namedTypeOverrides
+           let typeCollection = if isUnique then "HashSet" else "List"
+           $"%s{typeCollection}<{{typeName}}>"
+        | SetType (baseType, lower, upperOpt) ->
+           let typeName = getBaseTypeName baseType typeNamePrefix namedTypeOverrides
+           sprintf "HashSet<{typeName}>"
+
     let getNamedTypeOverride (typ: BaseType): BaseType option =
         match typ with
         | SimpleType s -> Some(NamedType(getSimpleTypeName s ""))
@@ -162,9 +197,12 @@ module CSharpSourceGenerator =
             match tryGetListTypeBounds attr.Type.Type namedTypeOverrides with
             | Some(innerType, lower, Some upper) ->
                 let baseTypeName = getBaseTypeName innerType typeNamePrefix namedTypeOverrides
-                yield $"public ListWithMinimumAndMaximum<%s{baseTypeName}> %s{attributeName} {{ get; }} = new ListWithMinimumAndMaximum<%s{baseTypeName}>(%d{lower}, %d{upper});"
-            // TODO: handle case where upper is None
-            | _ ->
+                yield $"public ListWithMinimumAndMaximum<{baseTypeName}> {attributeName} {{ get; }} = new ListWithMinimumAndMaximum<{baseTypeName}>({lower}, {upper});"
+            | Some(innerType, lower, None) ->
+                let baseTypeName = getBaseTypeName innerType typeNamePrefix namedTypeOverrides
+                yield $"public ListWithMinimum<{baseTypeName}> {attributeName} {{ get; }} = new ListWithMinimum<{baseTypeName}>({lower});"
+            | None ->
+                yield $"public {getBaseTypeName} {attributeName} {{ get; set; }}"
                 yield $"protected %s{attributeType} %s{fieldName};"
                 yield $"public %s{attributeType} %s{attributeName}"
                 yield "{"
@@ -444,7 +482,11 @@ module CSharpSourceGenerator =
                                 yield! seq {
                                     yield "default:"
                                     yield! seq {
-                                        yield "// TODO: track unsupported items"
+                                        yield "default:"
+                                        yield! seq {
+                                            yield "log.Error(\"Unsupported item encountered.\");"
+                                            yield "break;"
+                                        } |> indentLines
                                         yield "break;"
                                     } |> indentLines
                                 } |> indentLines
